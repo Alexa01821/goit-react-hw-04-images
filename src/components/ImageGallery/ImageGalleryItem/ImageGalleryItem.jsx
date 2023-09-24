@@ -8,7 +8,10 @@ export const ImageGalleryItem = ({
   openModal,
 }) => {
   return (
-    <GalleryItemElement key={id} onClick={() => openModal(largeImageURL, tags)}>
+    <GalleryItemElement
+      key={id}
+      onClick={() => openModal({ largeImageURL, tags })}
+    >
       <img src={webformatURL} alt={tags} className="ImageGalleryItem-image" />
     </GalleryItemElement>
   );

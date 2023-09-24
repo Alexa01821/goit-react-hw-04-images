@@ -1,29 +1,64 @@
 import { Container } from './AppStyled';
-import { Component } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SearchBar } from './SearchBar/SearchBar';
 import { ImageGalleryInfo } from './ImageGalleryInfo/ImageGalleryInfo';
+import { searchPhoto } from './API/APIGallery';
 
-export class App extends Component {
-  state = {
-    searchQuery: '',
-    page: 1,
-  };
+// const Status = {
+//   IDLE: 'idle',
+//   PENDING: 'pending',
+//   RESOLVED: 'resolved',
+//   REJECTED: 'rejected',
+// };
 
-  searchImages = value => {
-    this.setState({
-      searchQuery: value,
-      page: 1,
+export const App = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState(false);
+  const [error, setError] = useState('');
+  const [images, setImages] = useState([]);
+  const [showBtn, setShowBtn] = useState(false);
+
+  const getNormalizedPhoto = hits => {
+    return hits.map(({ id, webformatURL, largeImageURL, tags }) => {
+      return { id, webformatURL, largeImageURL, tags };
     });
   };
 
-  render() {
-    return (
-      <Container>
-        <SearchBar searchImages={this.searchImages} />
-        <main className='main'>
-          <ImageGalleryInfo searchQuery={this.state.searchQuery} page={this.state.page} />
-        </main>
-      </Container>
-    );
-  }
-}
+  const getImages = useCallback(async () => {
+    setStatus(true);
+    try {
+      const { hits, totalHits } = await searchPhoto(searchQuery, page);
+      setImages(prevImage => [...prevImage, ...getNormalizedPhoto(hits)]);
+      setShowBtn(page < Math.ceil(totalHits / 12));
+    } catch (error) {
+      setError(error);
+    } finally {
+      setStatus(false);
+    }
+  }, [page, searchQuery]);
+
+  useEffect(() => {
+    if (searchQuery) getImages();
+  }, [searchQuery, getImages]);
+
+  const searchImages = value => {
+    setSearchQuery(value);
+    setPage(1);
+    setImages([]);
+  };
+  const getMorePhoto = () => {
+    setPage(prePage => prePage + 1);
+  };
+  return (
+    <Container>
+      <SearchBar searchImages={searchImages} />
+      <main className="main">
+        <ImageGalleryInfo
+          params={{ status, error, showBtn, images }}
+          getMorePhoto={getMorePhoto}
+        />
+      </main>
+    </Container>
+  );
+};
